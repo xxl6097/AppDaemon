@@ -187,3 +187,105 @@ char* Common::str_stitching(const char *str1, const char *str2) {
 
     return result;
 }
+
+
+/**
+ * check if the process is running. by using ps command.
+ * @param  processName [description]
+ * @return             [description]
+ */
+int Common::isProcessExist(char* processName) {
+    char buf[BUFFER_SIZE];
+    char command[BUFFER_SIZE];
+    FILE* fp;
+    int ret = 0;
+    sprintf(command, "ps -c | grep %s", processName);
+
+    //log2file("command is: %s\n", command);
+
+    if ((fp = popen(command, "r")) == NULL) {
+        Logc("popen failed\n");
+        exit(1);
+    }
+
+    if ((fgets(buf, BUFFER_SIZE, fp)) != NULL) {
+        ret = 1;
+//        Logc("ps info:%s\n", buf);
+    } else {
+        Logc("process: %s not running.ret:%d\n", processName,ret);
+    }
+
+    pclose(fp);
+    return ret;
+}
+
+/* start daemon service */
+void Common::start_service(char *package_name, char *service_name)
+{
+    /* get the sdk version */
+    int version = get_version();
+    pid_t pid = fork();
+//    Logc("get the fork pid:%d",pid);
+    if (pid < 0)
+    {
+        Logc("app exit,pid is:%d",pid);
+        exit(EXIT_SUCCESS);
+    }
+    else if (pid == 0)
+    {
+        if (package_name == NULL || service_name == NULL)
+        {
+            Logc("package name or service name is null");
+            return;
+        }
+
+        char *p_name = str_stitching(package_name, "/");
+        char *s_name = str_stitching(p_name, service_name);
+//        Logc("service: %s", s_name);
+
+        int ret = -1000;
+        if (version >= 17 || version == 0)
+        {
+            execlp("am", "am", "startservice",
+                   "--user", "0", "-n", s_name, (char *) NULL);
+            Logc("result %d", ret);
+        }
+        else
+        {//startservice
+            ret = execlp("am", "am", "startservice", "-n", s_name, (char *) NULL);
+        }
+
+        Logc("exit start-service child process ret:%d",ret);
+        exit(EXIT_SUCCESS);
+    }
+    else
+    {
+        Logc("waitpid,pid is:%d",pid);
+        waitpid(pid, NULL, 0);
+    }
+}
+
+/**
+ * actully run the android app/service
+ * @param packageName [description]
+ * @param serviceName [description]
+ */
+void Common::runProcess(char* packageName, char* serviceName) {
+    FILE* fp;
+    char service_name[BUFFER_SIZE];
+    sprintf(service_name, "%s/%s", packageName, serviceName);
+
+    char command[BUFFER_SIZE];
+    sprintf(command, "am startservice --user 0 -n %s", service_name);
+    // sprintf(command, "am startservice -n %s/%s", packageName, serviceName);
+    Logc("run cmd: %s\n", command);
+
+
+    //execlp("am","am","startservice","--user",uid,"-n",service_name, (char *)NULL);
+
+    if ((fp = popen(command, "r")) == NULL) {
+        Logc("popen failed\n");
+        exit(1);
+    }
+    pclose(fp);
+}

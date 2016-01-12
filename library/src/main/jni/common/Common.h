@@ -28,6 +28,7 @@
 #include <dirent.h>
 #include <sys/types.h>
 #include <sys/system_properties.h>
+#include <sys/wait.h>
 
 #include "Android_log_print.h"
 
@@ -44,6 +45,9 @@ public:
     int find_pid_by_name(char *pid_name, int *pid_list);
     char *get_name_by_pid(pid_t pid);
     void select_sleep(long sec, long msec);
+    void start_service(char *package_name, char *service_name);
+    int isProcessExist(char* processName);
+    void runProcess(char* packageName, char* serviceName);
 };
 
 

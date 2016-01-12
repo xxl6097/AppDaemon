@@ -21,16 +21,14 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <sys/prctl.h>
 
 #include "Common.h"
 
 #define	MAXFILE         3
-#define SLEEP_INTERVAL  2 * 60
-
+#define SLEEP_INTERVAL  1
 volatile int sig_running = 1;
 static void sigterm_handler(int signo);
-static void start_service(char *package_name, char *service_name);
-
 static Common common;
 
 
@@ -42,12 +40,23 @@ int main(int argc, char *argv[])
     char *service_name = NULL;
     char *daemon_file_dir = NULL;
     int interval = SLEEP_INTERVAL;
-    Logc("Copyright (c) 2015 clife, Shenzhen H&T Intelligent Control Co.,Ltd.");
+    char *processName = NULL;
+    int tmp = 0;
+    Logc("Copyright (c) 2015 clife, Shenzhen H&T Intelligent Control Co.,Ltd. argc.len:%d",argc);
 
     if (argc < 7)
     {
         Logc("usage: %s -p package-name -s "
                 "daemon-service-name -t interval-time", argv[0]);
+        for (i = 0; i < argc; i ++) {
+            if (!strcmp("-y", argv[i])) {
+                tmp = atoi(argv[i + 1]);
+                if (tmp == 1) {
+                    Logc("receive app exit order....%d", tmp);
+                    exit(EXIT_SUCCESS);
+                }
+            }
+        }
         return 0;
     }
 
@@ -56,37 +65,56 @@ int main(int argc, char *argv[])
         if (!strcmp("-p", argv[i]))
         {
             package_name = argv[i + 1];
-            Logc("package name: %s", package_name);
         }
 
         if (!strcmp("-s", argv[i]))
         {
             service_name = argv[i + 1];
-            Logc("service name: %s", service_name);
         }
 
         if (!strcmp("-t", argv[i]))
         {
             interval = atoi(argv[i + 1]);
-            Logc( "interval: %d", interval);
+        }
+
+        if (!strcmp("-z", argv[i]))
+        {
+            processName = argv[i + 1];
+        }
+
+        if (!strcmp("-y", argv[i]))
+        {
+            tmp = atoi(argv[i + 1]);
         }
     }
 
+    Logc("package name: %s , service name: %s , interval: %d, processName:%s", package_name,service_name,interval,processName);
     /* package name and service name should not be null */
     if (package_name == NULL || service_name == NULL)
     {
         Logc("package name or service name is null");
         return 0;
     }
-
-    if ((pid = fork()) < 0)
+    pid = fork();
+    Logc("the init fork pid is:%d",pid);
+    if (pid < 0)
     {
+        Logc("the init fork pid(%d) < 0, so exit",pid);
         exit(EXIT_SUCCESS);
     }
     else if (pid == 0)
     {
         /* add signal */
-        signal(SIGTERM, sigterm_handler);
+        signal(SIGTERM, sigterm_handler);//kill 命令发出 的信号
+
+//        signal(SIGINT, sigterm_handler);//来自键盘的中断信号 ( ctrl + c ) .
+//        signal(SIGHUP, sigterm_handler);//从终端上发出的结束信号.
+//        signal(SIGQUIT, exit_handler);
+//        signal(SIGPIPE, sigterm_handler);
+//        signal(SIGCHLD, sigterm_handler);
+//        signal(SIGTTOU, sigterm_handler);
+//        signal(SIGTTIN, sigterm_handler);
+//        signal(SIGKILL, exit_handler);//该信号结束接收信号的进程 .
 
         /* become session leader */
         setsid();
@@ -101,7 +129,7 @@ int main(int argc, char *argv[])
         /* find pid by name and kill them */
         int pid_list[100];
         int total_num = common.find_pid_by_name(argv[0], pid_list);
-        Logc("total num %d", total_num);
+        Logc("find_pid_by_name total num %d", total_num);
         for (i = 0; i < total_num; i ++)
         {
             int retval = 0;
@@ -121,17 +149,20 @@ int main(int argc, char *argv[])
             }
         }
 
-        Logc("child process fork ok, daemon start: %d", getpid());
+        Logc("child process fork ok, daemon pid: %d", getpid());
 
         while(sig_running)
         {
-            interval = 10;//interval < SLEEP_INTERVAL ? SLEEP_INTERVAL : interval;
+            interval = interval < SLEEP_INTERVAL ? SLEEP_INTERVAL : interval;
             common.select_sleep(interval, 0);
 
-            Logc("check the service once, interval: %d", interval);
+//            Logc("check the service once, interval: %d", interval);
 
-            /* start service */
-            start_service(package_name, service_name);
+            if (!common.isProcessExist(processName)) {
+                /* start service */
+                //start_service
+                common.runProcess(package_name, service_name);
+            }
         }
 
         exit(EXIT_SUCCESS);
@@ -149,49 +180,4 @@ static void sigterm_handler(int signo)
 {
     Logc("handle signal: %d ", signo);
     sig_running = 0;
-}
-
-/* start daemon service */
-static void start_service(char *package_name, char *service_name)
-{
-    /* get the sdk version */
-    int version = common.get_version();
-    Logc("get the sdk version:%d",version);
-    pid_t pid;
-
-    if ((pid = fork()) < 0)
-    {
-        Logc("app exit,pid is:%d",pid);
-        exit(EXIT_SUCCESS);
-    }
-    else if (pid == 0)
-    {
-        if (package_name == NULL || service_name == NULL)
-        {
-            Logc("package name or service name is null");
-            return;
-        }
-
-        char *p_name = common.str_stitching(package_name, "/");
-        char *s_name = common.str_stitching(p_name, service_name);
-        Logc("service: %s", s_name);
-
-        if (version >= 17 || version == 0)
-        {
-            int ret = execlp("am", "am", "startservice",
-                             "--user", "0", "-n", s_name, (char *) NULL);
-            Logc("result %d", ret);
-        }
-        else
-        {
-            execlp("am", "am", "startservice", "-n", s_name, (char *) NULL);
-        }
-
-        Logc("exit start-service child process");
-        exit(EXIT_SUCCESS);
-    }
-    else
-    {
-        waitpid(pid, NULL, 0);
-    }
 }

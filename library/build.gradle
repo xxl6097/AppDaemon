@@ -27,14 +27,18 @@ android {
 
 task ndkBuild(type: Exec) {
     def ndkDir = project.plugins.findPlugin('com.android.library').sdkHandler.getNdkFolder()
+    println('File path:'+ndkDir)
+    println(buildDir)
     commandLine "$ndkDir/ndk-build.cmd", '-C', 'src/main/jni',
             "NDK_OUT=$buildDir/ndk/obj",
             "NDK_APP_DST_DIR=$buildDir/ndk/libs/\$(TARGET_ARCH_ABI)"
-}
 
-task copyExeFile(type: Copy) {
-    from fileTree(dir: file(buildDir.absolutePath + '/ndk/libs/armeabi'), include: '*')
-    into file('src/main/assets')
+    def fromFile = fileTree(dir: file(buildDir.absolutePath + '/ndk/libs/armeabi'), include: '*')
+    def intoFile = 'src/main/assets'
+    copy {
+        from fromFile
+        into intoFile
+    }
 }
 
 //apply from: '../gradle-mvn-push-het.gradle'
