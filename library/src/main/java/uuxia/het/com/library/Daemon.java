@@ -1,5 +1,6 @@
 package uuxia.het.com.library;
 
+import android.app.ActivityManager;
 import android.content.Context;
 import android.util.Log;
 
@@ -35,6 +36,7 @@ public class Daemon {
         String cmd = context.getDir(BIN_DIR_NAME, Context.MODE_PRIVATE)
                 .getAbsolutePath() + File.separator + DAEMON_BIN_NAME;
 
+        int pidStr = 0;
 		/* create the command string */
         StringBuilder cmdBuilder = new StringBuilder();
         cmdBuilder.append(cmd);
@@ -44,9 +46,13 @@ public class Daemon {
         cmdBuilder.append(daemonClazzName.getName());
         cmdBuilder.append(" -t ");
         cmdBuilder.append(interval);
+        cmdBuilder.append(" -z ");
+        cmdBuilder.append(getCurProcessName(context));
+        cmdBuilder.append(" -y ");
+        cmdBuilder.append(pidStr);
 
         try {
-            Runtime.getRuntime().exec(cmdBuilder.toString()).waitFor();
+            int pid = Runtime.getRuntime().exec(cmdBuilder.toString()).waitFor();
         } catch (IOException | InterruptedException e) {
             Log.e(TAG, "start daemon error: " + e.getMessage());
         }
@@ -68,5 +74,36 @@ public class Daemon {
                 start(context, daemonServiceClazz, interval);
             }
         }).start();
+    }
+
+    public static void killDaemon(Context context) {
+        String cmd = context.getDir(BIN_DIR_NAME, Context.MODE_PRIVATE)
+                .getAbsolutePath() + File.separator + DAEMON_BIN_NAME;
+
+        String pidStr = "";
+		/* create the command string */
+        StringBuilder cmdBuilder = new StringBuilder();
+        cmdBuilder.append(cmd);
+        cmdBuilder.append(" -y ");
+        cmdBuilder.append(1);
+
+        try {
+            int pid = Runtime.getRuntime().exec(cmdBuilder.toString()).waitFor();
+        } catch (IOException | InterruptedException e) {
+            Log.e(TAG, "start daemon error: " + e.getMessage());
+        }
+    }
+
+    private static String getCurProcessName(Context context) {
+        int pid = android.os.Process.myPid();
+        ActivityManager mActivityManager = (ActivityManager) context
+                .getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningAppProcessInfo appProcess : mActivityManager
+                .getRunningAppProcesses()) {
+            if (appProcess.pid == pid) {
+                return appProcess.processName;
+            }
+        }
+        return null;
     }
 }

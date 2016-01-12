@@ -7,8 +7,12 @@ android {
     defaultConfig {
         minSdkVersion 19
         targetSdkVersion 23
-        versionCode 1
-        versionName "1.0"
+        if (project.hasProperty('VERSION_CODE')) {
+            versionCode Integer.parseInt(VERSION_CODE)
+        }
+        if (project.hasProperty('VERSION_NAME')) {
+            versionName VERSION_NAME
+        }
     }
     sourceSets {
         main {
@@ -41,4 +45,4 @@ task ndkBuild(type: Exec) {
     }
 }
 
-//apply from: '../gradle-mvn-push-het.gradle'
+apply from: '../github.gradle'
