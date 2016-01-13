@@ -18,7 +18,8 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE    	:= libcommon
-LOCAL_SRC_FILES 	:= Common.cpp
+LOCAL_SRC_FILES 	:= Common.cpp\
+UdpCore.cpp \
 
 include $(BUILD_STATIC_LIBRARY)
 

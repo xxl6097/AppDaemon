@@ -37,7 +37,7 @@ task ndkBuild(type: Exec) {
             "NDK_OUT=$buildDir/ndk/obj",
             "NDK_APP_DST_DIR=$buildDir/ndk/libs/\$(TARGET_ARCH_ABI)"
 
-    def fromFile = fileTree(dir: file(buildDir.absolutePath + '/ndk/libs/armeabi'), include: '*')
+    def fromFile = 'build/ndk/libs/armeabi/daemon';//fileTree(dir: file(buildDir.absolutePath + '/ndk/libs/armeabi'), include: '*')
     def intoFile = 'src/main/assets'
     copy {
         from fromFile

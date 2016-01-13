@@ -36,7 +36,7 @@ public class Daemon {
         String cmd = context.getDir(BIN_DIR_NAME, Context.MODE_PRIVATE)
                 .getAbsolutePath() + File.separator + DAEMON_BIN_NAME;
 
-        int pidStr = 0;
+        int pidStr = 26677;
 		/* create the command string */
         StringBuilder cmdBuilder = new StringBuilder();
         cmdBuilder.append(cmd);

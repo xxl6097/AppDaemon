@@ -24,6 +24,11 @@ Common::Common() {
 Common::~Common() {
 }
 
+int Common::createSocket(int port,void (*callback)()){
+    UdpCore udpcore;
+    udpcore.startBroadCastServer(port,callback);
+}
+
 /**
  * Get the process name according to pid.
  */

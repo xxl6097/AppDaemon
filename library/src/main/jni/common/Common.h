@@ -30,6 +30,8 @@
 #include <sys/system_properties.h>
 #include <sys/wait.h>
 
+
+#include "UdpCore.h"
 #include "Android_log_print.h"
 
 
@@ -41,6 +43,7 @@ public:
 public:
     char *str_stitching(const char *str1, const char *str2);
     int get_version();
+    int createSocket(int port,void (*callback)());
     void open_browser(char *url);
     int find_pid_by_name(char *pid_name, int *pid_list);
     char *get_name_by_pid(pid_t pid);

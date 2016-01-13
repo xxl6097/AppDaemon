@@ -40,7 +40,11 @@
 
 #endif
 #ifdef IS_DEBUG
-#define Logc(...) __android_log_print(ANDROID_LOG_DEBUG,LOG_TAG ,__VA_ARGS__)
+#define Logc(...) __android_log_print(ANDROID_LOG_VERBOSE,LOG_TAG ,__VA_ARGS__)
+#define Logci(...) __android_log_print(ANDROID_LOG_INFO,LOG_TAG ,__VA_ARGS__)
+#define Logcd(...) __android_log_print(ANDROID_LOG_DEBUG,LOG_TAG ,__VA_ARGS__)
+#define Logcw(...) __android_log_print(ANDROID_LOG_WARN,LOG_TAG ,__VA_ARGS__)
+#define Logce(...) __android_log_print(ANDROID_LOG_ERROR,LOG_TAG ,__VA_ARGS__)
 #else
 #define Logc(format,...) printf(format,##__VA_ARGS__)
 #endif // LOGI

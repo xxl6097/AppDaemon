@@ -22,15 +22,23 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/prctl.h>
-
+#include <pthread.h> //多线程相关操作头文件，可移植众多平台
 #include "Common.h"
 
 #define	MAXFILE         3
 #define SLEEP_INTERVAL  1
 volatile int sig_running = 1;
 static void sigterm_handler(int signo);
+static void *socket_core_thread(void *arg);
 static Common common;
-
+//创建进程通讯子线程
+static pthread_t id;
+//定义回调函数
+void exitCallback()
+{
+    Logce("===============Hello World!\n");
+    exit(EXIT_SUCCESS);
+}
 
 int main(int argc, char *argv[])
 {
@@ -88,7 +96,16 @@ int main(int argc, char *argv[])
         }
     }
 
-    Logc("package name: %s , service name: %s , interval: %d, processName:%s", package_name,service_name,interval,processName);
+    Logci("package name: %s , service name: %s , interval: %d, processName:%s , port:%d", package_name,service_name,interval,processName,tmp);
+//    common.createSocket(tmp,exitCallback);
+    pthread_t id;
+    int ret = pthread_create(&id, NULL, socket_core_thread, &tmp);
+    if(ret) {
+        Logci("Create pthread error! id:%d",ret);
+    }
+    Logce("main process create sucessfull.");
+    //pthread_join(id, NULL);
+
     /* package name and service name should not be null */
     if (package_name == NULL || service_name == NULL)
     {
@@ -99,23 +116,13 @@ int main(int argc, char *argv[])
     Logc("the init fork pid is:%d",pid);
     if (pid < 0)
     {
-        Logc("the init fork pid(%d) < 0, so exit",pid);
+        Logce("the init fork pid(%d) < 0, so exit",pid);
         exit(EXIT_SUCCESS);
     }
     else if (pid == 0)
     {
         /* add signal */
         signal(SIGTERM, sigterm_handler);//kill 命令发出 的信号
-
-//        signal(SIGINT, sigterm_handler);//来自键盘的中断信号 ( ctrl + c ) .
-//        signal(SIGHUP, sigterm_handler);//从终端上发出的结束信号.
-//        signal(SIGQUIT, exit_handler);
-//        signal(SIGPIPE, sigterm_handler);
-//        signal(SIGCHLD, sigterm_handler);
-//        signal(SIGTTOU, sigterm_handler);
-//        signal(SIGTTIN, sigterm_handler);
-//        signal(SIGKILL, exit_handler);//该信号结束接收信号的进程 .
-
         /* become session leader */
         setsid();
         /* change work directory */
@@ -172,6 +179,15 @@ int main(int argc, char *argv[])
         /* parent process */
         exit(EXIT_SUCCESS);
     }
+}
+
+
+void *socket_core_thread(void *arg)
+{
+    int *port = (int *)arg;
+    Logci("create socket_core_thread. args:%d",*port);
+    common.createSocket(*port,exitCallback);
+//    udpcore.startBroadCastServer(*port,exitCallback);
 }
 
 
