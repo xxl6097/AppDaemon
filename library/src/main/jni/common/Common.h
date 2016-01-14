@@ -18,7 +18,7 @@
  */
 #ifndef APPDAEMON_COMMON_H
 #define APPDAEMON_COMMON_H
-#define BUFFER_SIZE 2048
+#define BUFFER_SIZE 1024
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,7 +33,7 @@
 
 #include "UdpCore.h"
 #include "Android_log_print.h"
-
+#include "commondata.h"
 
 class Common
 {
@@ -43,7 +43,7 @@ public:
 public:
     char *str_stitching(const char *str1, const char *str2);
     int get_version();
-    int createSocket(int port,void (*callback)());
+    int createSocket(Socket_info *socket_info,void (*callback)(void*));
     void open_browser(char *url);
     int find_pid_by_name(char *pid_name, int *pid_list);
     char *get_name_by_pid(pid_t pid);

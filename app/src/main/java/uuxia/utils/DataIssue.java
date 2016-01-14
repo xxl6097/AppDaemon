@@ -58,8 +58,8 @@ public class DataIssue extends BaseThread {
         if (data == null || data.length == 0)
             throw new Exception("data length is Invalid...");
         String ip = packet.getIp();
-        if (localIp != null && localIp.equals(ip))
-            return;
+//        if (localIp != null && localIp.equals(ip))
+//            return;
         byte[] recv = data;//checkData(data, len, ip);
         if (callback == null) {
             throw new Exception("please set callback method...");

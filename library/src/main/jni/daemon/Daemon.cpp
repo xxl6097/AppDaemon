@@ -26,91 +26,213 @@
 #include "Common.h"
 
 #define	MAXFILE         3
-#define SLEEP_INTERVAL  1
+#define SLEEP_INTERVAL  5
 volatile int sig_running = 1;
 static void sigterm_handler(int signo);
-static void *socket_core_thread(void *arg);
+static void *SocketCoreThread(void *arg);
+static void *DaemonThread(void *arg);
+static void CheckDaemonRunning(Socket_info* info);
+static int GetMainArgs(int argc, char *argv[]);
+static void CreateThreads();
+void ThreadCallback(void *args);
 static Common common;
 //创建进程通讯子线程
-static pthread_t id;
-//定义回调函数
-void exitCallback()
-{
-    Logce("===============Hello World!\n");
-    exit(EXIT_SUCCESS);
-}
-
+static pthread_t socket_thread,daemon_thread;
+static struct Socket_info socket_info = {26677, 18899, SLEEP_INTERVAL,NULL,NULL,NULL,NULL};
 int main(int argc, char *argv[])
 {
-    int i;
-    pid_t pid;
-    char *package_name = NULL;
-    char *service_name = NULL;
-    char *daemon_file_dir = NULL;
-    int interval = SLEEP_INTERVAL;
-    char *processName = NULL;
-    int tmp = 0;
     Logc("Copyright (c) 2015 clife, Shenzhen H&T Intelligent Control Co.,Ltd. argc.len:%d",argc);
+    int ret = GetMainArgs(argc,argv);
+    if(ret != -1)
+    {
+        CreateThreads();
+//        CheckDaemonRunning(&socket_info);
+    }
+    Logce("linux native main exit.");
+    return ret;
+}
 
+static void CreateDeamonThread()
+{
+    int ret1 = pthread_create(&daemon_thread,NULL,DaemonThread,&socket_info);
+    if(ret1) {
+        Logci("Create DaemonThread error! ret:%d",ret1);
+    }
+}
+
+static void CreateSocketCoreThread()
+{
+    int ret = pthread_create(&socket_thread, NULL, SocketCoreThread, &socket_info);
+    if(ret) {
+        Logci("Create SocketCoreThread error! ret:%d",ret);
+    }
+}
+
+static void CreateThreads()
+{
+    CreateSocketCoreThread();
+    CreateDeamonThread();
+
+    pthread_join(socket_thread, NULL);
+//    pthread_join(daemon_thread, NULL);
+}
+
+static int GetMainArgs(int argc, char *argv[])
+{
+    int i;
     if (argc < 7)
     {
         Logc("usage: %s -p package-name -s "
-                "daemon-service-name -t interval-time", argv[0]);
+                     "daemon-service-name -t interval-time", argv[0]);
         for (i = 0; i < argc; i ++) {
             if (!strcmp("-y", argv[i])) {
-                tmp = atoi(argv[i + 1]);
-                if (tmp == 1) {
-                    Logc("receive app exit order....%d", tmp);
+                socket_info.localport = atoi(argv[i + 1]);
+                if (socket_info.localport == 1) {
+                    Logc("receive app exit order....%d", socket_info.localport);
                     exit(EXIT_SUCCESS);
                 }
             }
         }
-        return 0;
+        return -1;
     }
 
     for (i = 0; i < argc; i ++)
     {
         if (!strcmp("-p", argv[i]))
         {
-            package_name = argv[i + 1];
+            socket_info.package_name = argv[i + 1];
         }
 
         if (!strcmp("-s", argv[i]))
         {
-            service_name = argv[i + 1];
+            socket_info.service_name = argv[i + 1];
         }
 
         if (!strcmp("-t", argv[i]))
         {
-            interval = atoi(argv[i + 1]);
+            socket_info.sleep_time = atoi(argv[i + 1]);
         }
 
         if (!strcmp("-z", argv[i]))
         {
-            processName = argv[i + 1];
+            socket_info.processName = argv[i + 1];
         }
 
         if (!strcmp("-y", argv[i]))
         {
-            tmp = atoi(argv[i + 1]);
+            socket_info.localport = atoi(argv[i + 1]);
+        }
+
+        if (!strcmp("-x", argv[i]))
+        {
+            socket_info.destport = atoi(argv[i + 1]);
         }
     }
+    Logci("localport:%d , destport:%d package name: %s , service name: %s , interval: %d, processName:%s .", socket_info.localport,socket_info.destport, socket_info.package_name,socket_info.service_name,socket_info.sleep_time,socket_info.processName);
+    return 0;
+}
 
-    Logci("package name: %s , service name: %s , interval: %d, processName:%s , port:%d", package_name,service_name,interval,processName,tmp);
-//    common.createSocket(tmp,exitCallback);
-    pthread_t id;
-    int ret = pthread_create(&id, NULL, socket_core_thread, &tmp);
-    if(ret) {
-        Logci("Create pthread error! id:%d",ret);
+//定义回调函数
+void ThreadCallback(void* args)
+{
+    AppClientTaskType* appClientTaskType = (AppClientTaskType*)args;
+    Logce("receive app client msg then call ThreadCallback...TaskType:%d",*appClientTaskType);
+    switch (*appClientTaskType){
+        case het_exit:
+            Logce("exit sucessfull...........................");
+            sig_running = 0;
+            exit(EXIT_SUCCESS);
+            pthread_exit(0);
+            break;
+        case het_restart:
+        {
+            Logce("restart daemon process.!");
+            int ret = pthread_kill(daemon_thread,SIGUSR1);//发送SIGUSR1，打印字符串。
+            if(ret == ESRCH || ret == EINVAL)
+            {
+                CreateDeamonThread();
+                Logce("thread:%d is not exist or exit .",(unsigned int)daemon_thread);
+            }
+        }
+            break;
+        case het_killdaemon:
+        {
+            int pthread_kill_err = pthread_kill(daemon_thread,SIGUSR1);
+            Logce("kill daemon process.  %d",pthread_kill_err);
+            if(pthread_kill_err == ESRCH)
+            {
+                Logce("thread:%d is not exist or exit .",(unsigned int)daemon_thread);
+            }
+            else if(pthread_kill_err == EINVAL)
+            {
+                Logce("Illegal signal");
+            }
+            else
+            {
+                Logce("thread:%d is alive.",(unsigned int)daemon_thread);
+                sig_running = 0;
+            }
+        }
+            break;
+        default:
+            break;
     }
-    Logce("main process create sucessfull.");
-    //pthread_join(id, NULL);
+}
 
+static void *DaemonThread(void *arg)
+{
+    pthread_detach(pthread_self());
+    Socket_info *info = (Socket_info*)arg;
+    Logce("create DaemonThread sucessfull. address:%p",&socket_info);
+    CheckDaemonRunning(info);
+}
+
+static void *SocketCoreThread(void *arg)
+{
+    Socket_info *socket_info = (Socket_info*)arg;
+    Logce("create SocketCoreThread sucessfull. address:%p",&socket_info);
+    common.createSocket(socket_info, ThreadCallback);
+//    udpcore.startBroadCastServer(*port,ThreadCallback);
+}
+
+static void CheckDaemonRunning(Socket_info* info)
+{
+    while(sig_running)
+    {
+        info->sleep_time  = info->sleep_time < SLEEP_INTERVAL ? SLEEP_INTERVAL : info->sleep_time;
+        common.select_sleep(info->sleep_time, 0);
+
+        Logcw("check the service once, sleeptime: %d", info->sleep_time);
+
+        if (!common.isProcessExist(info->processName)) {
+            /* start service */
+            //start_service
+            common.runProcess(info->package_name, info->service_name);
+        }
+    }
+    Logce("daemon thread exit, so shutdown.");
+    //exit(EXIT_SUCCESS);
+    sig_running = 0;
+    pthread_exit(0);
+}
+
+/* signal term handler */
+static void sigterm_handler(int signo)
+{
+    Logc("============handle signal: %d ", signo);
+    sig_running = 0;
+}
+
+
+static int pidtask(Socket_info socket_info,char *argv[])
+{
+    pid_t pid;
+    int i;
     /* package name and service name should not be null */
-    if (package_name == NULL || service_name == NULL)
+    if (socket_info.package_name == NULL || socket_info.service_name == NULL)
     {
         Logc("package name or service name is null");
-        return 0;
+        return -1;
     }
     pid = fork();
     Logc("the init fork pid is:%d",pid);
@@ -160,15 +282,15 @@ int main(int argc, char *argv[])
 
         while(sig_running)
         {
-            interval = interval < SLEEP_INTERVAL ? SLEEP_INTERVAL : interval;
-            common.select_sleep(interval, 0);
+            socket_info.sleep_time = socket_info.sleep_time < SLEEP_INTERVAL ? SLEEP_INTERVAL : socket_info.sleep_time;
+            common.select_sleep(socket_info.sleep_time, 0);
 
-//            Logc("check the service once, interval: %d", interval);
+            Logc("check the service once, sleeptime: %d", socket_info.sleep_time);
 
-            if (!common.isProcessExist(processName)) {
+            if (!common.isProcessExist(socket_info.processName)) {
                 /* start service */
                 //start_service
-                common.runProcess(package_name, service_name);
+                common.runProcess(socket_info.package_name, socket_info.service_name);
             }
         }
 
@@ -179,21 +301,5 @@ int main(int argc, char *argv[])
         /* parent process */
         exit(EXIT_SUCCESS);
     }
-}
-
-
-void *socket_core_thread(void *arg)
-{
-    int *port = (int *)arg;
-    Logci("create socket_core_thread. args:%d",*port);
-    common.createSocket(*port,exitCallback);
-//    udpcore.startBroadCastServer(*port,exitCallback);
-}
-
-
-/* signal term handler */
-static void sigterm_handler(int signo)
-{
-    Logc("handle signal: %d ", signo);
-    sig_running = 0;
+    return 0;
 }

@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketTimeoutException;
+import java.util.Arrays;
 
 /**
  * Created by uuxia-mac on 15/8/29.
@@ -26,11 +27,11 @@ public class UdpServer extends BaseThread {
             try {
                 datagramSocket.receive(datagramPacket);
                 PacketBuffer packet = new PacketBuffer();
-//                packet.setData(datagramPacket.getData());
+                packet.setData(datagramPacket.getData());
                 packet.setLength(datagramPacket.getLength());
                 packet.setPort(datagramPacket.getPort());
                 packet.setIp(datagramPacket.getAddress().getHostAddress().toString());
-//                Logc.i("接收队列大小->" + inQueue.size() + " " + ByteUtils.toHexString(packet.getData()));//+""+ ByteUtils.toHexString(datagramPacket.getData()));
+//               Logc.i("uulog.jni接收队列大小->" + inQueue.size() + " " + Arrays.toString(packet.getData()));//+""+ ByteUtils.toHexString(datagramPacket.getData()));
                 byte[] remo = new byte[datagramPacket.getLength()];
                 System.arraycopy(datagramPacket.getData(), 0, remo, 0, datagramPacket.getLength());
                 packet.setData(remo);

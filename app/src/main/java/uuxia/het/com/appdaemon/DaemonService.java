@@ -13,7 +13,7 @@ public class DaemonService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        Daemon.run(this, DaemonService.class, Daemon.INTERVAL_ONE_MINUTE * 2);
+        Daemon.run(this, DaemonService.class, Daemon.INTERVAL_ONE_MINUTE / 10,26677,18899);
     }
 
     @Override

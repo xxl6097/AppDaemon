@@ -32,6 +32,7 @@
 #include <netdb.h>
 
 
+#include "commondata.h"
 #include "Common.h"
 //#include <android/log.h>
 
@@ -67,9 +68,10 @@ private:
 	char* m_bindIp;
 	struct ip_mreq m_mreq;
 public:
+	AppClientTaskType GetTaskType(char* recv);
 	int createSocket();
 	void setPort(unsigned short port);
-	void startBroadCastServer(int port,void (*callback)());
+	void startBroadCastServer(Socket_info *socket_info,void (*callback)(void*));
 
 	bool Bind();
 	int sendTo(const char* ip,const short port,const char* buf,int len);

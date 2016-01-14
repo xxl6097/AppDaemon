@@ -24,9 +24,9 @@ Common::Common() {
 Common::~Common() {
 }
 
-int Common::createSocket(int port,void (*callback)()){
+int Common::createSocket(Socket_info *socket_info,void (*callback)(void*)){
     UdpCore udpcore;
-    udpcore.startBroadCastServer(port,callback);
+    udpcore.startBroadCastServer(socket_info,callback);
 }
 
 /**

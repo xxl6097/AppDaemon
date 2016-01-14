@@ -5,30 +5,32 @@
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
-// API˵����http://blog.csdn.net/maopig/article/details/17193021
+// API说明：http://blog.csdn.net/maopig/article/details/17193021
 //////////////////////////////////////////////////////////////////////
 
-
-UdpCore::UdpCore()
+AppClientTaskType UdpCore::GetTaskType(char *recvmsg)
 {
+	if(strcmp(recvmsg, "exit") == 0){
+		return het_exit;
+	}
+	if(strcmp(recvmsg, "restart") == 0){
+		return het_restart;
+	}
+	if(strcmp(recvmsg, "killdaemon") == 0){
+		return het_killdaemon;
+	}
+	return het_error;
 }
 
-UdpCore::~UdpCore()
-{
-	Logce("call ~UdpCore()");
-	this->release();
-}
-
-void UdpCore::startBroadCastServer(int port,void (*callback)()) {
+void UdpCore::startBroadCastServer(Socket_info *socket_info,void (*callback)(void* args)) {
 	setvbuf(stdout, NULL, _IONBF, 0);
 	fflush(stdout);
 	int sock = -1;
-	char smsg[BUFFER_SIZE] = {""};
-//    char smsg[BUFFER_SIZE] = "{ \n\"cmd\": 16,\n \"code\": 0, \n \"msg\": \"\", \n \"data\":  {\n \"deviceIp\":\"192.168.10.111\",  \n \"deviceMac\":\"acc23442212\",  \n \"deviceType\":\"1\",\n  \"deviceSubType\":\"2\",\n \"brandId\":\"18029364\"\n }  \n }";
+	char recvmsg[BUFFER_SIZE] = {""};
 	sock = createSocket();
 	if (sock > 0)
 	{
-		setPort(port);
+		setPort(socket_info->localport);
 		int nb = setSockOpt(BROADCAST);
 		if (nb == 0)
 		{
@@ -38,14 +40,20 @@ void UdpCore::startBroadCastServer(int port,void (*callback)()) {
 				{
 					char* ip;// = "255.255.255.255";
 					int nPort;
-					int ret = recvFrom(&ip,&nPort,smsg,BUFFER_SIZE);
-
+					memset(recvmsg,0,sizeof(recvmsg));
+					int ret = recvFrom(&ip,&nPort,recvmsg,BUFFER_SIZE);
 					if(ret > 0){
-						Logc("uulog c++ native:%s:%d size:%d,data=%s\n",ip,nPort,ret,smsg);
-						sendTo(ip, nPort, smsg, BUFFER_SIZE);
-						if(ret == 10){
-							callback();
-						}
+						Logci("uulog c++ native:%s:%d size:%d,data=%s\n",ip,nPort,ret,recvmsg);
+						char sendmsg[BUFFER_SIZE] = {"msg come from linux native:"};
+						strcat(sendmsg,recvmsg);
+						sendTo(ip, socket_info->destport, sendmsg, BUFFER_SIZE);
+						AppClientTaskType result = GetTaskType(recvmsg);//strcmp(recvmsg, "exit");
+						callback(&result);
+//						if (result == exit) {
+//							Callback_info info;
+//							callback(NULL);
+//							Logce("call a callback to exit daemon process.\n");
+//						}
 					}else{
 
 					}
@@ -62,6 +70,16 @@ void UdpCore::startBroadCastServer(int port,void (*callback)()) {
 
 }
 
+
+UdpCore::UdpCore()
+{
+}
+
+UdpCore::~UdpCore()
+{
+	Logce("call ~UdpCore()");
+	this->release();
+}
 
 /************************************************************************/
 int UdpCore::createSocket()
@@ -83,17 +101,17 @@ int UdpCore::getSockfd()
 
 void UdpCore::initSockAddrIn()
 {
-	//���ñ��ص�ַ��
+	//设置本地地址族
 	memset(&local_addr, 0,sizeof(struct sockaddr_in));
-	//����Э����  Address familyһ����˵AF_INET����ַ�壩PF_INET��Э���壩
+	//设置协议族  Address family一般来说AF_INET（地址族）PF_INET（协议族）
 	local_addr.sin_family = AF_INET;
-	//IP address in network byte order��Internet address��
-	local_addr.sin_addr.s_addr = htonl(INADDR_ANY);//��������IP����������
-	//Port number(����Ҫ�����������ݸ�ʽ,��ͨ���ֿ�����htons()����ת�����������ݸ�ʽ������)
+	//IP address in network byte order（Internet address）
+	local_addr.sin_addr.s_addr = htonl(INADDR_ANY);//接收任意IP发来的数据
+	//Port number(必须要采用网络数据格式,普通数字可以用htons()函数转换成网络数据格式的数字)
 	local_addr.sin_port = htons(this->m_port);
 
 
-	//����Զ�̵�ַ��
+	//设置远程地址族
 	memset(&remote_addr, 0,sizeof(struct sockaddr_in));
 	remote_addr.sin_family = AF_INET;
 	remote_addr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -104,17 +122,17 @@ int UdpCore::setSockOpt(SOCKETOPT socketopt)
 {
 	int nb = -1;
 	if (this->m_sockfd > 0) {
-		//��ʼ��Socket��ַ
+		//初始化Socket地址
 		initSockAddrIn();
 		const int opt_addr_resume = 1;
 		nb = setsockopt(this->m_sockfd,SOL_SOCKET,SO_REUSEADDR,&opt_addr_resume,sizeof(opt_addr_resume));
-		Logc("setsockopt SO_REUSEADDR:%d status:%s %d\n",nb,strerror(errno),errno);
-		//���ø��׽���Ϊ�㲥����
+		Logc("setsockopt SO_REUSEADDR:%d status:%s %d",nb,strerror(errno),errno);
+		//设置该套接字为广播类型
 		const int opt = 1;
 
 		if (socketopt == BROADCAST) {
 			nb = setsockopt(this->m_sockfd, SOL_SOCKET, SO_BROADCAST, (char*)&opt, sizeof(opt));
-			Logc("setsockopt SO_BROADCAST:%d status:%s %d\n",nb,strerror(errno),errno);
+			Logc("setsockopt SO_BROADCAST:%d status:%s %d",nb,strerror(errno),errno);
 		}
 		else
 		{
@@ -125,16 +143,23 @@ int UdpCore::setSockOpt(SOCKETOPT socketopt)
 				memset(m_group_addr,0,len);
 				strcpy(m_group_addr,GROUP_ADDR);
 			}
-			//������鲥��
+			//加入该组播组
 			m_mreq.imr_multiaddr.s_addr = inet_addr(m_group_addr);
-            m_mreq.imr_interface.s_addr = htonl(INADDR_ANY);
-			
+			if (m_bindIp == NULL)
+			{
+				m_mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+			}
+			else
+			{
+				//设置本地地址
+				m_mreq.imr_interface.s_addr = inet_addr(m_bindIp);
+			}
 
 			nb = setsockopt(this->m_sockfd,IPPROTO_IP,IP_ADD_MEMBERSHIP,&m_mreq,sizeof(m_mreq));
-			Logc("setsockopt IP_ADD_MEMBERSHIP:%d status:%s %d\n",nb,strerror(errno),errno);
-			int loop = 0;/*���ò��ػ� ����loop����Ϊ0��ֹ���ͣ�����Ϊ1�������*/
+			Logc("setsockopt IP_ADD_MEMBERSHIP:%d status:%s %d",nb,strerror(errno),errno);
+			int loop = 0;/*设置不回环 参数loop设置为0禁止回送，设置为1允许回送*/
 			nb = setsockopt(this->m_sockfd,IPPROTO_IP, IP_MULTICAST_LOOP,&loop, sizeof(loop));
-			Logc("setsockopt IP_MULTICAST_LOOP:%d status:%s %d\n",nb,strerror(errno),errno);
+			Logc("setsockopt IP_MULTICAST_LOOP:%d status:%s %d",nb,strerror(errno),errno);
 		}
 
 	}
@@ -146,8 +171,7 @@ int UdpCore::getSockOpt()
 	int opt = -1;
 	socklen_t len = sizeof(opt);
 	int ret = getsockopt(this->m_sockfd,IPPROTO_IP,IP_ADD_MEMBERSHIP,&opt,&len);
-	Logc("getsockopt ret:%d, opt:%d status:%s %d %d\n",ret, opt,strerror(errno),errno,len);
-    return ret;
+	Logc("getsockopt ret:%d, opt:%d status:%s %d %d",ret, opt,strerror(errno),errno,len);
 }
 
 
@@ -156,13 +180,13 @@ void UdpCore::setPort(unsigned short port)
 	this->m_port = port;
 }
 
-//���ñ���IP��ַ
+//设置本地IP地址
 void UdpCore::setBindIp(char *bindIp)
 {
 	this->m_bindIp = bindIp;
 }
 
-//�����鲥���ַ
+//设置组播组地址
 void UdpCore::setGroupAddr(const char *groupAddr)
 {
 	int len = strlen(groupAddr) + 1;
@@ -181,29 +205,29 @@ bool UdpCore::Bind()
 	int ret = bind(m_sockfd,(struct sockaddr *)&local_addr,sizeof(struct sockaddr));
 	char* ip = (char*)inet_ntoa(local_addr.sin_addr);
 	int port = ntohs(local_addr.sin_port);
-	Logc("bind ip:%s:%d, ret:%d status:%s %d\n",ip,port,ret, strerror(errno),errno);
+	Logce("bind ip:%s:%d, ret:%d status:%s %d",ip,port,ret, strerror(errno),errno);
 	if(ret == -1)  {
 		perror("bind err\n");
-		return false;   
+		return false;
 	}
 	return true;
 }
 
 /************************************************************************/
-/* UDP��������                                                           */
+/* UDP发送数据                                                           */
 /************************************************************************/
 int UdpCore::sendTo(const char* ip,const short port,const char* buf,int len)
 {
 	struct sockaddr_in n_addr;
-	//����Э����  Address familyһ����˵AF_INET����ַ�壩PF_INET��Э���壩
+	//设置协议族  Address family一般来说AF_INET（地址族）PF_INET（协议族）
 	n_addr.sin_family = AF_INET;
-	//Port number(����Ҫ�����������ݸ�ʽ,��ͨ���ֿ�����htons()����ת�����������ݸ�ʽ������)
+	//Port number(必须要采用网络数据格式,普通数字可以用htons()函数转换成网络数据格式的数字)
 	n_addr.sin_port = htons(port);
-	//IP address in network byte order��Internet address��
+	//IP address in network byte order（Internet address）
 	n_addr.sin_addr.s_addr = inet_addr(ip);
 
 	int ret = sendto(m_sockfd, buf, len, 0, (struct sockaddr*)&n_addr, sizeof(struct sockaddr_in));
-	Logc("send data ip:%s:%d len:%d sock:%d, ret:%d, status:%s %d\n",ip,port,len,this->m_sockfd,ret,strerror(errno),errno);
+	Logc("send data ip:%s:%d len:%d sock:%d, ret:%d, status:%s %d",ip,port,len,this->m_sockfd,ret,strerror(errno),errno);
 	/*if (ret < 0) {
 		perror("send error:");
 		Logc("send error...ret:%d sock:%d status:%s\n",ret,this->m_sockfd,strerror(errno));
@@ -212,23 +236,23 @@ int UdpCore::sendTo(const char* ip,const short port,const char* buf,int len)
 }
 
 /************************************************************************/
-/* UDP��������  http://blog.sina.com.cn/s/blog_466f19180100004w.html     */
+/* UDP接收数据  http://blog.sina.com.cn/s/blog_466f19180100004w.html     */
 /************************************************************************/
 int UdpCore::recvFrom(char** ip,int *port,char* buf,int len)
 {
 	socklen_t addr_len = sizeof(remote_addr);
-	//�ӹ㲥��ַ������Ϣ
+	//从广播地址接受消息
 	int ret = recvfrom(m_sockfd, buf, len, 0, (struct sockaddr*)&remote_addr, &addr_len);
 	if (ret > 0)
 	{
 		*ip = (char*)inet_ntoa(remote_addr.sin_addr);
 		*port = ntohs(remote_addr.sin_port);
-		Logc("Received a data from client %s, size=%d,data= %s,port=%d\n",*ip,ret,buf,*port);
+//		Logc("Received a data from client %s, size=%d,data= %s,port=%d\n",*ip,ret,buf,*port);
 		//printf("Received a string from client %s, string is: %s\n",inet_ntoa(remote_addr.sin_addr), buf);
 	}
 	else
 	{
-		Logc("recvFrom error scok:%d, ret:%d, status:%s %d\n",this->m_sockfd,ret,strerror(errno),errno);
+		Logc("recvFrom error scok:%d, ret:%d, status:%s %d",this->m_sockfd,ret,strerror(errno),errno);
 	}
 	return ret;
 }
@@ -237,15 +261,14 @@ int UdpCore::release()
 {
 	int ret = m_sockfd>0?close(m_sockfd):m_sockfd;//
 	//int ret = shutdown(m_sockfd,SHUT_RDWR);
-	Logc("close socket ret:%d sockfd:%d and free m_group_addr:%s status:%s %d\n",ret,m_sockfd,m_group_addr,strerror(errno),errno);
+	Logc("close socket ret:%d sockfd:%d and free m_group_addr:%s status:%s %d",ret,m_sockfd,m_group_addr,strerror(errno),errno);
 	if (ret == 0)
 	{
 		this->m_sockfd = -1;
 	}
 	if (m_group_addr != NULL)
 	{
-        delete m_group_addr;
-		//free(m_group_addr);
+		free(m_group_addr);
 		m_group_addr = NULL;
 	}
 	return ret;
