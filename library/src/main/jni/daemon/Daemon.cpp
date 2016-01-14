@@ -197,6 +197,7 @@ static void *SocketCoreThread(void *arg)
 
 static void CheckDaemonRunning(Socket_info* info)
 {
+    sig_running = 1;
     while(sig_running)
     {
         info->sleep_time  = info->sleep_time < SLEEP_INTERVAL ? SLEEP_INTERVAL : info->sleep_time;
