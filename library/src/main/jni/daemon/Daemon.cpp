@@ -203,7 +203,7 @@ static void CheckDaemonRunning(Socket_info* info)
         info->sleep_time  = info->sleep_time < SLEEP_INTERVAL ? SLEEP_INTERVAL : info->sleep_time;
         common.select_sleep(info->sleep_time, 0);
 
-        Logcw("check the service once, sleeptime: %d", info->sleep_time);
+//        Logcw("check the service once, sleeptime: %d", info->sleep_time);
 
         if (!common.isProcessExist(info->processName)) {
             /* start service */
