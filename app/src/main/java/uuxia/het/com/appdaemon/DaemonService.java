@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.IBinder;
 
 import uuxia.het.com.library.Daemon;
+import uuxia.utils.Logc;
 
 
 /**
@@ -14,9 +15,26 @@ public class DaemonService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-//        Daemon.run(this, DaemonService.class,5,26677,18866);
-        String cmd = "-p uuxia.het.com.sample -s uuxia.het.com.sample.DaemonService11 -t 5 -z uuxia.het.com.sample:daemon11 -y 26677 -x 18866";
-        Daemon.run(this, cmd);
+        Daemon.run(this, DaemonService.class, 5, 26677, 18866);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+           while (true){
+               Logc.i("uulog==============================="+System.currentTimeMillis());
+               try {
+                   Thread.sleep(1000);
+               } catch (InterruptedException e) {
+                   e.printStackTrace();
+               }
+           }
+            }
+        }).start();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        Daemon.launchAlerm(this,10);
     }
 
     @Override

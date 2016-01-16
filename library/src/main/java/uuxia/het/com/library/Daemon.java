@@ -13,6 +13,7 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Enumeration;
+import java.util.Vector;
 
 /**
  * Created by Android Studio.
@@ -36,14 +37,17 @@ public class Daemon {
     private static final String BIN_DIR_NAME = "bin";
     private static final String DAEMON_BIN_NAME = "daemon";
 
-    public static final int INTERVAL_ONE_MINUTE = 60;
-    public static final int INTERVAL_ONE_HOUR = 3600;
-
-    /** start daemon */
+    /**
+     * start daemon
+     * @param context
+     * @param daemonClazzName
+     * @param interval default 1 seconds
+     * @param jniport jni server port
+     * @param javaport java local server port
+     */
     private static void start(Context context, Class<?> daemonClazzName, int interval ,int jniport, int javaport) {
         String cmd = context.getDir(BIN_DIR_NAME, Context.MODE_PRIVATE)
                 .getAbsolutePath() + File.separator + DAEMON_BIN_NAME;
-
 		/* create the command string */
         StringBuilder cmdBuilder = new StringBuilder();
         cmdBuilder.append(cmd);
@@ -59,25 +63,6 @@ public class Daemon {
         cmdBuilder.append(jniport);
         cmdBuilder.append(" -x ");
         cmdBuilder.append(javaport);
-
-        try {
-            Log.w("uulog.jni",cmdBuilder.toString());
-            int pid = Runtime.getRuntime().exec(cmdBuilder.toString()).waitFor();
-        } catch (IOException | InterruptedException e) {
-            Log.e(TAG, "start daemon error: " + e.getMessage());
-        }
-    }
-
-    /** start daemon */
-    private static void start(Context context, String daemonClazzName) {
-        String cmd = context.getDir(BIN_DIR_NAME, Context.MODE_PRIVATE)
-                .getAbsolutePath() + File.separator + DAEMON_BIN_NAME;
-
-		/* create the command string */
-        StringBuilder cmdBuilder = new StringBuilder();
-        cmdBuilder.append(cmd);
-        cmdBuilder.append("  ");
-        cmdBuilder.append(daemonClazzName);
 
         try {
             int pid = Runtime.getRuntime().exec(cmdBuilder.toString()).waitFor();
@@ -104,32 +89,13 @@ public class Daemon {
         }).start();
     }
 
-    public static void run(final Context context,final String cmd) {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                Command.install(context, BIN_DIR_NAME, DAEMON_BIN_NAME);
-                start(context, cmd);
-            }
-        }).start();
-    }
-
-    public static void killDaemon(Context context) {
-        String cmd = context.getDir(BIN_DIR_NAME, Context.MODE_PRIVATE)
-                .getAbsolutePath() + File.separator + DAEMON_BIN_NAME;
-
-        String pidStr = "";
-		/* create the command string */
-        StringBuilder cmdBuilder = new StringBuilder();
-        cmdBuilder.append(cmd);
-        cmdBuilder.append(" -y ");
-        cmdBuilder.append(1);
-
-        try {
-            int pid = Runtime.getRuntime().exec(cmdBuilder.toString()).waitFor();
-        } catch (IOException | InterruptedException e) {
-            Log.e(TAG, "start daemon error: " + e.getMessage());
-        }
+    /**
+     * time:Time delay,example:time=10 mean 10 seconds
+     * @param context
+     * @param time
+     */
+    public static void launchAlerm(Context context,int time){
+        DaemonReceiver.launchAlerm(context,time);
     }
 
     private static String getCurProcessName(Context context) {
@@ -143,65 +109,5 @@ public class Daemon {
             }
         }
         return null;
-    }
-
-    public static String getBroadCastAddress(Context context){
-        String ip = getIp(context);
-        String broadcast = "255.255.255.255";
-        if (TextUtils.isEmpty(ip)){
-            return broadcast;
-        }else{
-            String[] lines = ip.split("\\.");
-
-            StringBuffer sb = new StringBuffer();
-            sb.append(lines[0]);
-            sb.append(".");
-            sb.append(lines[1]);
-            sb.append(".");
-            sb.append(lines[2]);
-            sb.append(".255");
-            broadcast = sb.toString();
-            Log.i("uulog.jni",broadcast);
-            return broadcast;
-        }
-    }
-
-    /**
-     * Get the ip of current mobile device. This util needs
-     * "android.permission.ACCESS_WIFI_STATE" and "android.permission.INTERNET" permission.
-     */
-    public static String getIp(Context context) {
-        WifiManager manager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
-        String ipAddress = "0.0.0.0";
-
-        if (manager == null) {
-            return ipAddress;
-        }
-
-        if (manager.isWifiEnabled()) {
-            WifiInfo info = manager.getConnectionInfo();
-            int ip = info.getIpAddress();
-            ipAddress = (ip & 0xff) + "." + ((ip >> 8) & 0xff) + "." +
-                    ((ip >> 16) & 0xff) + "." + ((ip >> 24) & 0xff);
-        } else {
-            try {
-                Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces();
-                for (; en.hasMoreElements();) {
-                    NetworkInterface nitf = en.nextElement();
-                    Enumeration<InetAddress> inetAddrs = nitf.getInetAddresses();
-                    for (;inetAddrs.hasMoreElements();) {
-                        InetAddress inetAddr = inetAddrs.nextElement();
-                        if (!inetAddr.isLoopbackAddress()) {
-                            ipAddress = inetAddr.getHostAddress();
-                            break;
-                        }
-                    }
-                }
-            } catch (SocketException e) {
-				/* ignore */
-            }
-        }
-
-        return ipAddress;
     }
 }

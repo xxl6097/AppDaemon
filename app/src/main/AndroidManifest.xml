@@ -21,8 +21,11 @@
         </activity>
         <service
             android:name=".DaemonService"
-            android:process=":daemon"
+            android:process=":hetdaemon"
             android:exported="true" >
+            <intent-filter>
+                <action android:name="common.het.com.library.intent.action.START" />
+            </intent-filter>
         </service>
     </application>
 

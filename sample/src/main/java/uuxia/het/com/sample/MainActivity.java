@@ -8,7 +8,6 @@ import android.view.View;
 
 import java.io.IOException;
 
-import uuxia.het.com.daemon001.Daemon;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -17,7 +16,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        ///data/data/uuxia.het.com.appdaemon/app_bin/daemon.lock uuxia.het.com.appdaemon uuxia.het.com.appdaemon:daemon uuxia.het.com.appdaemon.DaemonService 1 1
 
     }
     public void onStartService(View view){

@@ -5,12 +5,12 @@
     android:layout_height="match_parent">
 
     <Button
-        android:text="onInit"
-        android:onClick="onInit"
+        android:text="启动测试Service"
+        android:onClick="onStartService"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
     <Button
-        android:text="send"
+        android:text="发送数据给Linux进程"
         android:onClick="onSend"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
@@ -18,6 +18,7 @@
     <EditText
         android:id="@+id/num"
         android:text="This is uuxia"
+        android:hint="enter your send data."
         android:gravity="center"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
