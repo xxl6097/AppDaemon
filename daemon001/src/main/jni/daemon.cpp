@@ -30,6 +30,7 @@
 #include <stdarg.h>
 #include <signal.h>
 #include <sys/stat.h>
+#include <sys/param.h>
 
 #include "Android_log_print.h"
 #define BUFFER_LENGTH 1024
@@ -60,7 +61,8 @@ char logFilePath[512] = "";
  * logFilePath: "";
  * @return      [description]
  */
-#define	NOFILE         3
+//#define	NOFILE         3
+
 void init_daemon(void)
 {
     int pid;
@@ -78,9 +80,11 @@ void init_daemon(void)
         exit(1);        //fork失败，退出
     //是第二子进程，继续
     //第二子进程不再是会话组长
-    for(i=0;i< NOFILE;++i)  //关闭打开的文件描述符
+    for(i=0;i< getdtablesize();++i)  //关闭打开的文件描述符
+    {
         close(i);
-
+    }
+//
     chdir("/tmp");      //改变工作目录到/tmp
     umask(0);           //重设文件创建掩模
     return;

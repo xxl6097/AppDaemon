@@ -66,6 +66,9 @@ E:/HeT/studioproject/demo/AppDaemon/daemon001/src/main/obj/local/armeabi/objs/da
  D:/Android/android-sdk_r24.3.4-windows/android-sdk-windows/ndk-bundle/platforms/android-19/arch-arm/usr/include/endian.h \
  D:/Android/android-sdk_r24.3.4-windows/android-sdk-windows/ndk-bundle/platforms/android-19/arch-arm/usr/include/sys/endian.h \
  D:/Android/android-sdk_r24.3.4-windows/android-sdk-windows/ndk-bundle/platforms/android-19/arch-arm/usr/include/machine/endian.h \
+ D:/Android/android-sdk_r24.3.4-windows/android-sdk-windows/ndk-bundle/platforms/android-19/arch-arm/usr/include/sys/param.h \
+ D:/Android/android-sdk_r24.3.4-windows/android-sdk-windows/ndk-bundle/platforms/android-19/arch-arm/usr/include/linux/param.h \
+ D:/Android/android-sdk_r24.3.4-windows/android-sdk-windows/ndk-bundle/platforms/android-19/arch-arm/usr/include/asm/param.h \
  E:/HeT/studioproject/demo/AppDaemon/daemon001/src/main/jni/Android_log_print.h \
  D:/Android/android-sdk_r24.3.4-windows/android-sdk-windows/ndk-bundle/platforms/android-19/arch-arm/usr/include/android/log.h
 
@@ -200,6 +203,12 @@ D:/Android/android-sdk_r24.3.4-windows/android-sdk-windows/ndk-bundle/platforms/
 D:/Android/android-sdk_r24.3.4-windows/android-sdk-windows/ndk-bundle/platforms/android-19/arch-arm/usr/include/sys/endian.h:
 
 D:/Android/android-sdk_r24.3.4-windows/android-sdk-windows/ndk-bundle/platforms/android-19/arch-arm/usr/include/machine/endian.h:
+
+D:/Android/android-sdk_r24.3.4-windows/android-sdk-windows/ndk-bundle/platforms/android-19/arch-arm/usr/include/sys/param.h:
+
+D:/Android/android-sdk_r24.3.4-windows/android-sdk-windows/ndk-bundle/platforms/android-19/arch-arm/usr/include/linux/param.h:
+
+D:/Android/android-sdk_r24.3.4-windows/android-sdk-windows/ndk-bundle/platforms/android-19/arch-arm/usr/include/asm/param.h:
 
 E:/HeT/studioproject/demo/AppDaemon/daemon001/src/main/jni/Android_log_print.h:
 
