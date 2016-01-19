@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="uuxia.het.com.appdaemon">
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
-    <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
     <application
         android:allowBackup="true"
@@ -19,14 +20,21 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <service
-            android:name=".DaemonService"
-            android:process=":hetdaemon"
-            android:exported="true" >
+            android:name=".TestService"
+            android:enabled="true"
+            android:exported="true"
+            android:process=":test_v">
             <intent-filter>
-                <action android:name="common.het.com.library.intent.action.START" />
+                <action android:name="common.het.com.library.intent.action.TestService" />
             </intent-filter>
         </service>
+        <service
+            android:name=".AppService"
+            android:enabled="true"
+            android:exported="true"
+            android:process=":app_v"></service>
     </application>
 
 </manifest>

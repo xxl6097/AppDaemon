@@ -2,6 +2,7 @@ package uuxia.het.com.library;
 
 import android.app.ActivityManager;
 import android.content.Context;
+import android.content.Intent;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.text.TextUtils;
@@ -14,6 +15,8 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Enumeration;
 import java.util.Vector;
+
+import uuxia.het.com.library.utils.DaemonModel;
 
 /**
  * Created by Android Studio.
@@ -94,8 +97,13 @@ public class Daemon {
      * @param context
      * @param time
      */
-    public static void launchAlerm(Context context,int time){
-        DaemonReceiver.launchAlerm(context,time);
+    public static void launchAlerm(Context context,DaemonModel daemonModel,int time){
+        if (daemonModel == null){
+            daemonModel = new DaemonModel();
+        }
+        daemonModel.setCode("restart");
+        daemonModel.setDaemonClasz(context.getClass().getName());
+        DaemonReceiver.launchAlerm(context,daemonModel,time);
     }
 
     private static String getCurProcessName(Context context) {

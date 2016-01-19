@@ -1,13 +1,18 @@
 package uuxia.het.com.appdaemon;
 
 import android.app.Activity;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Message;
+import android.os.Messenger;
+import android.os.RemoteException;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -20,8 +25,10 @@ import java.util.Arrays;
 import java.util.Enumeration;
 
 import uuxia.het.com.library.Daemon;
+import uuxia.het.com.library.utils.ServiceUtils;
 import uuxia.utils.IRecevie;
 import uuxia.utils.IpUtils;
+import uuxia.utils.Logc;
 import uuxia.utils.PacketBuffer;
 import uuxia.utils.UdpManager;
 
@@ -37,11 +44,6 @@ public class MainActivity extends Activity implements IRecevie{
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         setTitle(getIp(this));
-//        try {
-//            Process process = Runtime.getRuntime().exec("su");
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
 
         num = (EditText) findViewById(R.id.num);
         ip = IpUtils.getLocalIP(this);
@@ -57,16 +59,51 @@ public class MainActivity extends Activity implements IRecevie{
     }
 
     public void onSend(View view){
-        String str = "uuxia";
-        if (num.getText().toString() != null){
-            str = num.getText().toString();
-        }
-        udpManager.send(str.getBytes(),ip,26677);
+//        String str = "uuxia";
+//        if (num.getText().toString() != null){
+//            str = num.getText().toString();
+//        }
+//        udpManager.send(str.getBytes(), ip, 26677);
+
+
+        startService(new Intent(this,AppService.class));
     }
 
-    public void onStartService(View view){
-        startService(new Intent(this, DaemonService.class));
+    public void onUnService(View view){
+        unbindService(conn);
     }
+
+    ServiceConnection conn = new ServiceConnection(){
+        public void onServiceDisconnected(ComponentName name) {
+            Logc.i("===========================================================onServiceDisconnected===");
+        }
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            Logc.i("======================================================onServiceConnected===");
+        }
+    };
+
+    public void onStartService(View view){
+//        startService(new Intent(this, DaemonService.class));
+        startTestService();
+    }
+
+    public void startTestService(){
+        startService(new Intent(this, TestService.class));
+        Intent aaaa = new Intent();
+        int androidVersion = ServiceUtils.getSDKVersionNumber();
+        if (androidVersion >= 21) {
+            //只一句至关重要，对于android5.0以上，所以minSdkVersion最好小于21；
+            aaaa.setPackage(getPackageName());
+        }
+        aaaa.setAction("common.het.com.library.intent.action.TestService");
+        boolean mIsBound = bindService(aaaa, conn, Context.BIND_AUTO_CREATE);
+        if (!mIsBound) {
+            Logc.e("初始化service失败..mService=" +  " mConnection=" + conn);
+        } else {
+            Logc.i("成功初始化ServiceManager App.packageName=" + getPackageName() + " mService=" + " mConnection=" + conn);
+        }
+    }
+
 
     private Handler handler = new Handler(){
         @Override

@@ -11,6 +11,8 @@ import android.util.Log;
 
 import java.util.Iterator;
 
+import uuxia.het.com.library.utils.DaemonModel;
+
 public class DaemonReceiver extends BroadcastReceiver {
     private final static String TAG = "uulog.DaemonReceiver";
     public final static String RESTARTACTION = "common.het.com.library.intent.action.START";
@@ -18,12 +20,13 @@ public class DaemonReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
-        String msg = intent.getStringExtra("msg");
-        String clasz = intent.getStringExtra("clasz");
-        Log.e(TAG, "DaemonReceiver.onReceive " + action  + ":"+msg+ " data:" + clasz);
+        DaemonModel daemonModel = (DaemonModel) intent.getSerializableExtra("DaemonModel");
+        if (daemonModel == null)
+            return;
+        Log.e(TAG, "DaemonReceiver.onReceive " + action  + ":"+daemonModel.getCode()+ " data:" + daemonModel.getDaemonClasz());
         if (action != null && action.equalsIgnoreCase(RESTARTACTION)){
-            if (!TextUtils.isEmpty(clasz) && null != msg && msg.equalsIgnoreCase("restart")) {
-                restartService(context, intent, clasz);
+            if (!TextUtils.isEmpty(daemonModel.getDaemonClasz()) && null != daemonModel.getCode() && daemonModel.getCode().equalsIgnoreCase("restart")) {
+                restartService(context, intent, daemonModel.getDaemonClasz());
             }
         }
     }
@@ -48,12 +51,16 @@ public class DaemonReceiver extends BroadcastReceiver {
         }
     }
 
-    public static void launchAlerm(Context context,int time){
+    public static void launchAlerm(Context context,DaemonModel daemonModel,int time){
         final int REQUEST_CODE_1 = 1;
         AlarmManager alarmMgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         Intent intent = new Intent(context, DaemonReceiver.class);
-        intent.putExtra("msg", "restart");
-        intent.putExtra("clasz", context.getClass().getName());
+
+//        intent.putExtra("msg", "restart");
+//        intent.putExtra("clasz", context.getClass().getName());
+//        intent.putExtra("destClasz", destClasz);
+//        intent.putExtra("destAction", destAction);
+        intent.putExtra("DaemonModel",daemonModel);
         intent.setAction(RESTARTACTION);
         PendingIntent setPendIntent1 = PendingIntent.getBroadcast(context, REQUEST_CODE_1, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT);

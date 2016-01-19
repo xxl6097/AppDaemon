@@ -9,6 +9,12 @@
         android:onClick="onStartService"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
+
+    <Button
+        android:text="UnbindService"
+        android:onClick="onUnService"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
     <Button
         android:text="发送数据给Linux进程"
         android:onClick="onSend"
