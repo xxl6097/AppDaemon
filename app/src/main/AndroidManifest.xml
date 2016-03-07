@@ -30,11 +30,6 @@
                 <action android:name="common.het.com.library.intent.action.TestService" />
             </intent-filter>
         </service>
-        <service
-            android:name=".AppService"
-            android:enabled="true"
-            android:exported="true"
-            android:process=":app_v"></service>
     </application>
 
 </manifest>

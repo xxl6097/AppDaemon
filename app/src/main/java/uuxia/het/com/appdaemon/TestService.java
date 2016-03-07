@@ -5,10 +5,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
 
-import junit.framework.Test;
-
-import uuxia.het.com.library.*;
-import uuxia.het.com.library.utils.DaemonModel;
+import uuxia.het.com.library.DaemonService;
 import uuxia.utils.Logc;
 
 public class TestService extends Service {
@@ -31,7 +28,7 @@ public class TestService extends Service {
             }
         }).start();
 
-        DaemonService.startDaemonService(this,TestService.class,ACTION,getPackageName(),5);
+        DaemonService.startDaemonService(this, TestService.class, ACTION, getPackageName(), 5);
     }
     @Override
     public void onDestroy() {

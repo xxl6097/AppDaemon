@@ -59,14 +59,11 @@ public class MainActivity extends Activity implements IRecevie{
     }
 
     public void onSend(View view){
-//        String str = "uuxia";
-//        if (num.getText().toString() != null){
-//            str = num.getText().toString();
-//        }
-//        udpManager.send(str.getBytes(), ip, 26677);
-
-
-        startService(new Intent(this,AppService.class));
+        String str = "uuxia";
+        if (num.getText().toString() != null){
+            str = num.getText().toString();
+        }
+        udpManager.send(str.getBytes(), ip, 26677);
     }
 
     public void onUnService(View view){
