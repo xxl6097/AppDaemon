@@ -14,6 +14,7 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Vector;
 
 import uuxia.het.com.library.utils.DaemonModel;
@@ -97,13 +98,17 @@ public class Daemon {
      * @param context
      * @param time
      */
-    public static void launchAlerm(Context context,DaemonModel daemonModel,int time){
-        if (daemonModel == null){
-            daemonModel = new DaemonModel();
+    public static void launchAlerm(Context context,List<DaemonModel> daemons,int time){
+        if (daemons == null || daemons.size() <= 0)
+            return;
+        for (DaemonModel daemonModel : daemons) {
+            if (daemonModel == null) {
+                daemonModel = new DaemonModel();
+            }
+            daemonModel.setCode("restart");
+            daemonModel.setDaemonClasz(context.getClass().getName());
+            DaemonReceiver.launchAlerm(context, daemonModel, time);
         }
-        daemonModel.setCode("restart");
-        daemonModel.setDaemonClasz(context.getClass().getName());
-        DaemonReceiver.launchAlerm(context,daemonModel,time);
     }
 
     private static String getCurProcessName(Context context) {

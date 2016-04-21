@@ -5,9 +5,17 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.preference.PreferenceManager;
+import android.util.Base64;
 
 import org.json.JSONArray;
 import org.json.JSONException;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.StreamCorruptedException;
 
 /**
  * Created by Android Studio.
@@ -27,6 +35,7 @@ import org.json.JSONException;
 public class Prefers {
     private static Prefers sInstance;
     private Context mContext;
+    private static String prefersName = "daemon";
 
     public Prefers(Context context) {
         mContext = context;
@@ -41,6 +50,83 @@ public class Prefers {
 
         public PreferFile(SharedPreferences sp) {
             this.sp = sp;
+        }
+
+        /**
+         * 针对复杂类型存储<对象>
+         *
+         * @param key
+         * @param object
+         */
+        @TargetApi(Build.VERSION_CODES.FROYO)
+        public void setObject(String key, Object object) {
+            if (mContext == null) {
+                throw new IllegalArgumentException("context cannot be null");
+            }
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ObjectOutputStream out = null;
+            try {
+
+                out = new ObjectOutputStream(baos);
+                out.writeObject(object);
+                String objectVal = new String(Base64.encode(baos.toByteArray(), Base64.DEFAULT));
+                SharedPreferences.Editor editor = sp.edit();
+                editor.putString(key, objectVal);
+                editor.commit();
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                try {
+                    if (baos != null) {
+                        baos.close();
+                    }
+                    if (out != null) {
+                        out.close();
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        @TargetApi(Build.VERSION_CODES.FROYO)
+        public <T> T getObject(String key, Class<T> clazz) {
+            if (mContext == null) {
+                throw new IllegalArgumentException("context cannot be null");
+            }
+            if (sp.contains(key)) {
+                String objectVal = sp.getString(key, null);
+                byte[] buffer = Base64.decode(objectVal, Base64.DEFAULT);
+                ByteArrayInputStream bais = new ByteArrayInputStream(buffer);
+                ObjectInputStream ois = null;
+                try {
+                    ois = new ObjectInputStream(bais);
+                    T t = (T) ois.readObject();
+                    if (t != null) {
+                        System.out.println(t.toString());
+                    }
+                    return t;
+                } catch (StreamCorruptedException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
+                } finally {
+                    try {
+                        if (bais != null) {
+                            bais.close();
+                        }
+                        if (ois != null) {
+                            ois.close();
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+            return null;
         }
 
         public void save(String key, int value) {
@@ -84,6 +170,15 @@ public class Prefers {
         }
 
         public void saveArray(String key, int[] array) {
+            JSONArray json = new JSONArray();
+            for (int value : array) {
+                json.put(value);
+            }
+
+            save(key, json.toString());
+        }
+
+        public void saveArray(String key, Integer[] array) {
             JSONArray json = new JSONArray();
             for (int value : array) {
                 json.put(value);
@@ -149,6 +244,25 @@ public class Prefers {
                 return defValue;
             }
 
+            return array;
+        }
+
+        public Integer[] getIntArray(String key) {
+            Integer[] array;
+            String json = getString(key, null);
+            if (json == null) {
+                return null;
+            }
+
+            try {
+                JSONArray jsonArr = new JSONArray(json);
+                array = new Integer[jsonArr.length()];
+                for (int i = 0; i < array.length; i ++) {
+                    array[i] = jsonArr.getInt(i);
+                }
+            } catch (JSONException e) {
+                return null;
+            }
             return array;
         }
 
@@ -315,4 +429,10 @@ public class Prefers {
 
         return new PreferFile(sp);
     }
+
+    public static PreferFile init(Context context) {
+        return with(context).load(prefersName);
+    }
+
+
 }

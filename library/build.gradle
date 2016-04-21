@@ -46,5 +46,5 @@ task ndkBuild(type: Exec) {
     }
 }
 
-//apply from: '../github.gradle'
-apply from: '../gradle-mvn-push-het.gradle'
+apply from: '../github.gradle'
+//apply from: '../gradle-mvn-push-het.gradle'

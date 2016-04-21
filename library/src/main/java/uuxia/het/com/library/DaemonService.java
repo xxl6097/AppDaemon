@@ -7,6 +7,10 @@ import android.os.IBinder;
 import android.text.TextUtils;
 import android.util.Log;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
 import uuxia.het.com.library.utils.DaemonModel;
 import uuxia.het.com.library.utils.Prefers;
 import uuxia.het.com.library.utils.ServiceUtils;
@@ -18,17 +22,18 @@ import uuxia.het.com.library.utils.ServiceUtils;
 public class DaemonService extends Service {
     private Thread daemonThread;
     private boolean running = true;
-    private static DaemonModel daemonModel;
     private final static String TAG = "uulog.DaemonService";
-    private final static String fileName = "daemon_info";
+    private final static String fileName = "daemon_info_ex";
+    private static List<DaemonModel> daemons = new ArrayList<>();
+    private static int mInterval = 60;
 
     @Override
     public void onCreate() {
         super.onCreate();
-        getPrefers();
-        Daemon.run(this, DaemonService.class, daemonModel.getInterval(), 26677, 18866);
-        LauchDaemon(daemonModel);
-        Log.e(TAG, "DaemonService.onCreate..............=" + daemonModel.toString());
+        loadPrefers();
+        Daemon.run(this, DaemonService.class, mInterval, 26677, 18866);
+        LauchDaemon();
+        Log.e(TAG, "DaemonService.onCreate..............=" + getPackageName());
     }
 
     public static void main(String[] args){
@@ -37,13 +42,13 @@ public class DaemonService extends Service {
     }
 
     public static void startDaemonService(Context context,Class<?> clasz,String action,String packageName,int inteval){
-        daemonModel = new DaemonModel();
+        DaemonModel daemonModel = new DaemonModel();
         daemonModel.setDestClasz(clasz.getName());
         daemonModel.setDestAction(action);
         daemonModel.setInterval(inteval);
         daemonModel.setDaseAppPakage(packageName);
-        Log.w(TAG, "cccc=" + daemonModel.toString());
-        savePrefers(context, daemonModel);
+        mInterval = inteval;
+        Log.w(TAG, "DaemonService=" + daemonModel.toString());
         if (!ServiceUtils.isServiceAlive(context, DaemonService.class.getName())) {
             Intent intent = new Intent(context, DaemonService.class);
             intent.putExtra("DaemonModel",daemonModel);
@@ -51,30 +56,34 @@ public class DaemonService extends Service {
         }
     }
 
-    private void LauchDaemon(final DaemonModel dm) {
-        if (dm == null || TextUtils.isEmpty(dm.getDestClasz()) || TextUtils.isEmpty(dm.getDestAction()))
-            return;
+    private void LauchDaemon() {
         daemonThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 while (running) {
-                    if (!ServiceUtils.isServiceAlive(DaemonService.this, dm.getDestClasz())) {
-                        Log.i(TAG,"Found User's Service there is no "+dm.getDestClasz());
-                        Intent intent = new Intent(dm.getDestAction());
-                        int androidVersion = ServiceUtils.getSDKVersionNumber();
-                        if (androidVersion >= 21) {
-                            //只一句至关重要，对于android5.0以上，所以minSdkVersion最好小于21；
-                            intent.setPackage(dm.getDaseAppPakage());
+                    if (daemons == null || daemons.size() <= 0)
+                        continue;
+                    for (DaemonModel dm : daemons) {
+                        if (dm == null || TextUtils.isEmpty(dm.getDestClasz()) || TextUtils.isEmpty(dm.getDestAction()))
+                            continue;
+                        if (!ServiceUtils.isServiceAlive(DaemonService.this, dm.getDestClasz())) {
+                            Log.i(TAG, "Found User's Service there is no " + dm.getDestClasz());
+                            Intent intent = new Intent(dm.getDestAction());
+                            int androidVersion = ServiceUtils.getSDKVersionNumber();
+                            if (androidVersion >= 21) {
+                                //只一句至关重要，对于android5.0以上，所以minSdkVersion最好小于21；
+                                intent.setPackage(dm.getDaseAppPakage());
+                            }
+                            startService(intent);
                         }
-                        startService(intent);
-                    }
-                    try {
-                        Thread.sleep(daemonModel.getInterval());
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+                        try {
+                            Thread.sleep(mInterval);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
 
 //                    Log.i(TAG,"DaemonService.tun.. "+daemonThread.isAlive() + " "+daemonThread);
+                    }
                 }
             }
         });
@@ -85,7 +94,7 @@ public class DaemonService extends Service {
     public void onDestroy() {
         super.onDestroy();
         Log.i(TAG, "DaemonService.onDestroy ");
-        Daemon.launchAlerm(this, daemonModel,10);
+        Daemon.launchAlerm(this, daemons,10);
     }
 
     @Override
@@ -93,41 +102,60 @@ public class DaemonService extends Service {
         return null;
     }
 
-//    @Override
-//    public int onStartCommand(Intent intent, int flags, int startId) {
-//        Log.i(TAG, daemonModel+"DaemonService.onStartCommand " + intent);
-//        if (intent != null){
-//            Object o = intent.getSerializableExtra("DaemonModel");
-//            if (o != null && o instanceof DaemonModel) {
-//                DaemonModel dm = (DaemonModel) o;
-//                if (dm != null) {
-//                    daemonModel = dm;
-//                }
-//            }
-//        }
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.i(TAG, "onStartCommand DaemonService.onStartCommand " + intent);
+        if (intent != null){
+            Object o = intent.getSerializableExtra("DaemonModel");
+            if (o != null && o instanceof DaemonModel) {
+                DaemonModel dm = (DaemonModel) o;
+                if (dm != null && dm.getDestClasz() != null) {
+                    Log.i(TAG, "onStartCommand " + dm.toString());
+                    if (daemons != null && daemons.size() > 0){
+                        for (DaemonModel item : daemons){
+                            if (item != null && item.getDestClasz() != null && !item.getDestClasz().equalsIgnoreCase(dm.getDestClasz())){
+                                daemons.add(dm);
+                            }
+                        }
+                    }else{
+                        daemons.add(dm);
+                    }
+                    savePrefers();
+                }
+            }
+        }
 //        LauchDaemon(daemonModel);
-//        return START_NOT_STICKY;
-//    }
+
+        return START_NOT_STICKY;
+    }
 
 
 
 
 
-    private static void savePrefers(Context context,DaemonModel value){
-
-        Prefers.with(context).load(fileName).save("destClasz", value.getDestClasz());
-        Prefers.with(context).load(fileName).save("destAction", value.getDestAction());
-        Prefers.with(context).load(fileName).save("destAppPackage", value.getDaseAppPakage());
-        Prefers.with(context).load(fileName).save("interval", value.getInterval());
+    private void savePrefers(){
+        if (daemons != null && daemons.size() > 0) {
+            Prefers.with(this).load(fileName).setObject("daemons", daemons);
+            Log.i(TAG, "savePrefers " + daemons.size()+" "+ daemons.toString());
+        }
     }
 
     private void getPrefers(){
-        if (daemonModel == null){
-            daemonModel = new DaemonModel();
-            daemonModel.interval = Prefers.with(this).load(fileName).getInt("interval", 60);
-            daemonModel.daseAppPakage = Prefers.with(this).load(fileName).getString("destAppPackage",null);
-            daemonModel.destAction = Prefers.with(this).load(fileName).getString("destAction",null);
-            daemonModel.destClasz = Prefers.with(this).load(fileName).getString("destClasz",null);
+        if (daemons.size() <= 0) {
+            List<DaemonModel> daemon = Prefers.with(this).load(fileName).getObject("daemons", List.class);
+            if (daemon != null) {
+                Log.i(TAG, "read from Prefers " + daemon.toString());
+                daemons.addAll(daemon);
+            }
+            Log.i(TAG, "getPrefers "+ daemons.size()+" " + daemons.toString());
+        }
+    }
+
+    private void loadPrefers(){
+        if (daemons.size() <= 0){
+            getPrefers();
+        }else{
+            savePrefers();
         }
     }
 }
