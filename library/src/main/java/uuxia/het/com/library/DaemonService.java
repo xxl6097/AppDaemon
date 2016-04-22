@@ -8,8 +8,11 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 import uuxia.het.com.library.utils.DaemonModel;
 import uuxia.het.com.library.utils.Prefers;
@@ -24,7 +27,8 @@ public class DaemonService extends Service {
     private boolean running = true;
     private final static String TAG = "uulog.DaemonService";
     private final static String fileName = "daemon_info_ex";
-    private static List<DaemonModel> daemons = new ArrayList<>();
+//    private static List<DaemonModel> daemons = new ArrayList<>();
+    private static ConcurrentHashMap<String, DaemonModel> daemons = new ConcurrentHashMap<>();
     private static int mInterval = 60;
 
     @Override
@@ -63,7 +67,7 @@ public class DaemonService extends Service {
                 while (running) {
                     if (daemons == null || daemons.size() <= 0)
                         continue;
-                    for (DaemonModel dm : daemons) {
+                    for (DaemonModel dm : daemons.values()) {
                         if (dm == null || TextUtils.isEmpty(dm.getDestClasz()) || TextUtils.isEmpty(dm.getDestAction()))
                             continue;
                         if (!ServiceUtils.isServiceAlive(DaemonService.this, dm.getDestClasz())) {
@@ -94,7 +98,7 @@ public class DaemonService extends Service {
     public void onDestroy() {
         super.onDestroy();
         Log.i(TAG, "DaemonService.onDestroy ");
-        Daemon.launchAlerm(this, daemons,10);
+        Daemon.launchAlerm(this, daemons.values(),10);
     }
 
     @Override
@@ -111,15 +115,7 @@ public class DaemonService extends Service {
                 DaemonModel dm = (DaemonModel) o;
                 if (dm != null && dm.getDestClasz() != null) {
                     Log.i(TAG, "onStartCommand " + dm.toString());
-                    if (daemons != null && daemons.size() > 0){
-                        for (DaemonModel item : daemons){
-                            if (item != null && item.getDestClasz() != null && !item.getDestClasz().equalsIgnoreCase(dm.getDestClasz())){
-                                daemons.add(dm);
-                            }
-                        }
-                    }else{
-                        daemons.add(dm);
-                    }
+                    daemons.put(dm.getDestClasz().toLowerCase(),dm);
                     savePrefers();
                 }
             }
@@ -128,9 +124,6 @@ public class DaemonService extends Service {
 
         return START_NOT_STICKY;
     }
-
-
-
 
 
     private void savePrefers(){
@@ -142,10 +135,10 @@ public class DaemonService extends Service {
 
     private void getPrefers(){
         if (daemons.size() <= 0) {
-            List<DaemonModel> daemon = Prefers.with(this).load(fileName).getObject("daemons", List.class);
+            ConcurrentHashMap<String, DaemonModel> daemon = Prefers.with(this).load(fileName).getObject("daemons", ConcurrentHashMap.class);
             if (daemon != null) {
                 Log.i(TAG, "read from Prefers " + daemon.toString());
-                daemons.addAll(daemon);
+                daemons.putAll(daemon);
             }
             Log.i(TAG, "getPrefers "+ daemons.size()+" " + daemons.toString());
         }

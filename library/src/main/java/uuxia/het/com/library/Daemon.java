@@ -13,6 +13,8 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Vector;
@@ -98,7 +100,7 @@ public class Daemon {
      * @param context
      * @param time
      */
-    public static void launchAlerm(Context context,List<DaemonModel> daemons,int time){
+    public static void launchAlerm(Context context,Collection<DaemonModel> daemons,int time){
         if (daemons == null || daemons.size() <= 0)
             return;
         for (DaemonModel daemonModel : daemons) {
